@@ -1,25 +1,28 @@
-# meta/main.yml
 ---
-# Update this metadata when creating a real role.
 galaxy_info:
-  author: Chris Ruettimann
-  namespace: joe_speedboat
+  author: Tuxbull-Open-Source
+  namespace: tuxbull
   role_name: template
-  description: Bitbull OS-aware Ansible role template
+  description: Deterministic OS-aware Ansible role template
   min_ansible_version: '2.9'
-  license: GPLv3
+  license: GPL-3.0-or-later
   platforms:
     - name: EL
       versions:
-        - '7'
         - '8'
         - '9'
+        - '10'
     - name: Ubuntu
+      versions:
+        - all
+    - name: Debian
       versions:
         - all
   galaxy_tags:
     - ansible
     - template
+    - role
+    - automation
+    - linux
 
 dependencies: []
-...

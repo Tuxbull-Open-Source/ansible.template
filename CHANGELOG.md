@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.0.0] - 2026-11-04
+## [1.5.1] - 2026-11-04
 
 ### Changed
 
@@ -12,7 +12,8 @@
 - Document the dispatcher contract, basename shadowing, folder-selection matrix,
   installed-role test harness, and the explicit limitation on conditional task
   includes from `tasks/main.yml`.
-- Add repository maintainer guidance in `AGENTS.md`.
+- Add repository-versioned `skills/ansible-role-template/SKILL.md` for agents
+  and maintainers, covering the same dispatcher and migration contract.
 
 ### Compatibility
 

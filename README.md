@@ -176,6 +176,18 @@ tasks/Ubuntu/20_configure.yml
 - Secrets supplied through Ansible Vault or an approved secret manager; never
   commit credentials, certificates, or private keys in a role.
 
+## Repository skill
+
+The Tuxbull-aligned reusable workflow is versioned in this repository:
+
+```text
+skills/ansible-role-template/SKILL.md
+```
+
+It documents the dispatcher contract, migration path, task placement, basename
+shadowing, installed-role validation, and the deliberate limitation on
+conditional includes from `tasks/main.yml`.
+
 ## Validation
 
 Run the harness from [tests/README.md](tests/README.md). The dispatcher is

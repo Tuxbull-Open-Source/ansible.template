@@ -1,8 +1,7 @@
 #!/usr/bin/ansible-playbook
 ---
-- name: Smoke test joe-speedboat.template
+- name: Smoke test tuxbull.template
   hosts: localhost
   gather_facts: true
   roles:
-    - role: joe-speedboat.template
-...
+    - role: tuxbull.template

@@ -1,44 +1,56 @@
-# Tests
+# Test harness
 
-This template must be tested like an installed role. The dispatcher searches for
-`roles/{{ role_path | basename }}/tasks`, so direct execution from the checkout
-can fail even when the role itself is valid.
+Test the template as an installed role. The dispatcher deliberately discovers
+the role task directory through normal local, Galaxy, AWX, and AAP role paths;
+a direct checkout invocation is not adequate evidence.
 
 ## Local harness
 
-Create a temporary harness with both common role names symlinked:
+Use a real directory copy rather than a symlink. Some Ansible installations
+resolve a symlink target basename, which can make the dispatcher search for the
+wrong role directory.
 
 ```bash
-rm -rf /tmp/hermes-ansible-template-harness
-mkdir -p /tmp/hermes-ansible-template-harness/roles
-ln -sfn /path/to/ansible.template /tmp/hermes-ansible-template-harness/roles/joe-speedboat.template
-ln -sfn /path/to/ansible.template /tmp/hermes-ansible-template-harness/roles/ansible.template
-cd /tmp/hermes-ansible-template-harness
+HARNESS=$(mktemp -d)
+mkdir -p "$HARNESS/roles"
+cp -a /path/to/ansible.template "$HARNESS/roles/tuxbull.template"
+cd "$HARNESS"
+
+ANSIBLE_ROLES_PATH=roles ansible-playbook \
+  /path/to/ansible.template/tests/test.yml \
+  -i localhost, -c local --syntax-check
+
+ANSIBLE_ROLES_PATH=roles ansible-playbook \
+  /path/to/ansible.template/tests/test.yml \
+  -i localhost, -c local
 ```
 
-Run syntax and smoke tests:
-
-```bash
-ANSIBLE_ROLES_PATH=roles ansible-playbook /path/to/ansible.template/tests/test.yml -i localhost, -c local --syntax-check
-ANSIBLE_ROLES_PATH=roles ansible-playbook /path/to/ansible.template/tests/test.yml -i localhost, -c local
-```
-
-Expected smoke-test result for the unmodified template:
+Expected result for the unmodified template:
 
 ```text
 failed=0
 ```
 
-Warnings about missing AWX/system role paths are acceptable in this local
-harness as long as the symlinked role path is found and the play finishes with
-`failed=0`.
+Warnings about unavailable AWX/system role paths are acceptable if the
+`tuxbull.template` harness directory is found and the play ends with `failed=0`.
 
-## When creating a real role
+## Derived roles
 
 After copying the template:
 
-1. Replace `joe-speedboat.template` in `tests/test.yml` with the final role name.
-2. Update the symlink names above to match the new role and repository basename.
-3. Add real host tests for the supported OS matrix.
-4. Run idempotency checks; the second run should report no unexpected changes.
-5. Verify effects independently, not only by Ansible recap.
+1. Replace `tuxbull.template` in `tests/test.yml` with the final Galaxy role
+   identity.
+2. Install the derived role beneath `roles/<role-basename>/` in the harness.
+3. Add tests for every supported operating-system family/version path.
+4. Verify that files in `tasks/shared/` contain no OS selectors or
+   platform-specific paths.
+5. Run a live, authorized test and a second idempotency converge for real roles.
+6. Independently verify the service/application behavior; an Ansible recap is
+   not sufficient proof.
+
+## Dispatcher limitation
+
+The dispatcher selects one static implementation per logical numbered basename.
+It does not support arbitrary conditional includes from `tasks/main.yml`.
+Model independent work as distinct basenames, and model platform-specific
+replacement with the same basename in the appropriate platform directory.

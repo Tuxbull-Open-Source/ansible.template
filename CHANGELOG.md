@@ -1,10 +1,5 @@
 # Changelog
 
-This ledger preserves the published release history recovered from GitHub release
-records and immutable tags. Earlier releases predate this repository file; their
-entries reproduce only published release notes and do not infer undocumented
-changes.
-
 ## [1.5.1] - 2026-11-04
 
 ### Changed

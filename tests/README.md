@@ -48,9 +48,10 @@ After copying the template:
 6. Independently verify the service/application behavior; an Ansible recap is
    not sufficient proof.
 
-## Dispatcher limitation
+## Dispatcher model
 
 The dispatcher selects one static implementation per logical numbered basename.
-It does not support arbitrary conditional includes from `tasks/main.yml`.
-Model independent work as distinct basenames, and model platform-specific
-replacement with the same basename in the appropriate platform directory.
+Use distinct basenames for independent work, and use the same basename only for
+intentional OS-specific replacement. Keep `tasks/main.yml` and
+`tasks/include-file.yml` unchanged in derived roles; dispatcher changes require
+a reviewed template PR first.

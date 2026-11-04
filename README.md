@@ -1,93 +1,65 @@
 # Tuxbull Ansible Role Template
 
-A reusable scaffold for building **OS-aware Ansible roles** with deterministic
-task selection. It is based on many years of productive enterprise operations,
-team implementation work, role reviews, and recurring maintenance lessons.
+The starting point for new OS-aware Ansible roles. It captures recurring
+enterprise implementation, team-review, and maintenance practice in one
+predictable structure: reduce duplicated platform checks, make task selection
+obvious, and give the next maintainer a simple way into the role.
 
-The template replaces repeated per-role OS-detection, path-selection, and
-conditional-include boilerplate with one documented dispatcher contract. That
-reduces duplicate code, gives reviewers one familiar structure, improves the
-overview of platform-specific behavior, and makes a new role easier to enter,
-review, test, and maintain.
+## The protected dispatcher core
 
-It is a **starting point for new roles**, not a service role. Copy it into a new
-role repository, replace demo content, and keep the dispatcher unless you intend
-to change the contract for every derived role.
-
-Dispatcher logic upgrades are deliberately centralized in exactly two files:
+These are the soul of this template:
 
 ```text
 tasks/main.yml
 tasks/include-file.yml
 ```
 
-Align those two files with the current template when upgrading derived-role
-logic; do not copy OS-selection changes into each numbered task file.
+**Do not change either file in a derived role.** Any dispatcher correction or
+new dispatch capability must be proposed, reviewed, and merged as a PR against
+`Tuxbull-Open-Source/ansible.template` first. Derived roles then align these two
+files with the merged template version.
 
-## What this template solves
+Keeping that rule gives every role the same well-tested selection behavior. It
+also means reviewers can focus on the role's actual task files rather than
+re-auditing a private dispatcher variant in every repository.
 
-Without a common pattern, roles often accumulate duplicated checks such as:
+## Why use this template
 
-```yaml
-when: ansible_os_family == 'RedHat'
-when: ansible_distribution_major_version | int == 9
-```
+Without a common layout, roles tend to repeat distribution checks and path
+selection inside unrelated tasks. That makes code harder to review and creates
+drift between roles.
 
-spread through otherwise unrelated tasks. That makes reviews harder and causes
-drift between roles. This template centralizes platform selection:
+This template provides:
 
-- one logical numbered task step has one selected implementation per host;
-- most-specific OS/version directories override broader fallbacks;
-- generic work lives in `tasks/shared/`;
-- RHEL-compatible behavior is shared through `tasks/rhelAll/`;
-- task ordering is visible from two-digit filename prefixes;
-- reviewers can compare the same directory layout across roles.
+- numbered task steps, so execution order is visible;
+- one OS-aware selection rule for each task step;
+- shared RHEL-family behavior through `rhelAll`;
+- a clear location for generic versus platform-specific logic;
+- a consistent role layout across the Tuxbull namespace;
+- an installed-role test harness that resembles Galaxy, AWX, and AAP use.
 
-## Important limitation
+## Create a role
 
-The dispatcher selects static files discovered from the role task tree. For a
-logical basename, it chooses the first matching platform implementation.
+1. Copy this repository into `ansible.<role_name>`.
+2. Set the final Galaxy identity in `meta/main.yml`:
 
-> **`tasks/main.yml` cannot conditionally include arbitrary task files.**
+   ```yaml
+   namespace: tuxbull
+   role_name: <role_name>
+   ```
 
-Do not add `include_tasks` with `when:` conditions to `tasks/main.yml` in an
-attempt to make the dispatcher additive. Use the folder-selection matrix below
-instead. If independent steps must both run, give them different basenames. If
-a feature is optional but valid on every supported platform, use a documented
-variable inside a selected task file.
+3. Change `tests/test.yml` to use `tuxbull.<role_name>`.
+4. Replace demo variables, task files, handlers, and documentation with the
+   real role behavior.
+5. Keep the two dispatcher-core files unchanged.
+6. Run the installed-role harness in [tests/README.md](tests/README.md).
 
-This limitation is deliberate: it keeps execution deterministic and prevents
-implicit interactions between a shared fallback and an OS-specific replacement.
+Use `.gitstay` only for intentionally empty platform folders.
 
-## Start a role
+## How task selection works
 
-1. Create a repository named `ansible.<role_name>` from this template.
-2. Update `meta/main.yml` for the final Tuxbull Galaxy identity, description,
-   supported platforms, and tags.
-3. Update `tests/test.yml` to use `tuxbull.<role_name>`.
-4. Replace demo variables in `defaults/main.yml` and `vars/main.yml`.
-5. Replace or remove all demo numbered task files.
-6. Replace `handlers/main.yml` with real handlers or an intentionally empty
-   handler file.
-7. Place static files in `files/` and Jinja templates in `templates/`.
-8. Rewrite the role README with its actual purpose, variables, OS support,
-   upgrade/rollback considerations, and validation commands.
-9. Run the installed-role harness in [tests/README.md](tests/README.md).
-
-Keep `.gitstay` only for empty platform directories that must remain in Git.
-
-## Dispatcher contract
-
-These files define the contract:
-
-```text
-tasks/main.yml
-tasks/include-file.yml
-```
-
-`tasks/main.yml` discovers all numbered task basenames, sorts them, and sends
-each one to `tasks/include-file.yml`. The include file selects the first existing
-implementation in this order:
+The dispatcher finds every numbered task basename, sorts the names, and selects
+one implementation for each basename using this order:
 
 ```text
 tasks/<distribution>-<full-version>/<task>.yml
@@ -100,38 +72,32 @@ tasks/<ansible_os_family>/<task>.yml
 tasks/shared/<task>.yml
 ```
 
-`rhelAll` covers AlmaLinux, Rocky Linux, and Red Hat Enterprise Linux. The
-`shared` directory is the global fallback.
+`rhelAll` applies to AlmaLinux, Rocky Linux, and Red Hat Enterprise Linux.
+`tasks/shared/` is the fallback for platform-neutral work.
 
-### Example selection
-
-For `20_install.yml` on Rocky Linux 9.3, selection is:
+For example, a Rocky 9.3 host selecting `20_install.yml` checks:
 
 ```text
-tasks/Rocky-9.3/20_install.yml
-tasks/Rocky-9/20_install.yml
-tasks/Rocky/20_install.yml
-tasks/rhelAll-9.3/20_install.yml
-tasks/rhelAll-9/20_install.yml
-tasks/rhelAll/20_install.yml
-tasks/RedHat/20_install.yml
-tasks/shared/20_install.yml
+Rocky-9.3 → Rocky-9 → Rocky → rhelAll-9.3 → rhelAll-9 → rhelAll → RedHat → shared
 ```
 
-The first existing file wins.
+The first existing file is the selected implementation.
 
-## Placement and maintenance rules
+## Put tasks in the right place
 
-| Location | Put here |
+| Location | Use it for |
 |---|---|
-| `tasks/shared/` | Platform-neutral validation, templating, content, and generic service work. No OS selectors, package-manager commands, or OS-specific paths. |
+| `tasks/shared/` | Work valid on every supported platform: validation, generic templating, content, or service operations. |
 | `tasks/rhelAll/` | Behavior common to AlmaLinux, Rocky, and RHEL. |
-| `tasks/<Distribution>/` | Behavior common to all supported versions of one distribution. |
-| `tasks/<Distribution>-<major>/` | Behavior specific to one distribution major release. |
-| `tasks/<Distribution>-<full-version>/` | Narrow workaround for one exact version. |
-| `tasks/<ansible_os_family>/` | A true OS-family fallback, such as `Debian/`. |
+| `tasks/<Distribution>/` | Behavior common to every supported version of one distribution. |
+| `tasks/<Distribution>-<major>/` | One distribution major version. |
+| `tasks/<Distribution>-<full-version>/` | A narrow exact-version workaround. |
+| `tasks/<ansible_os_family>/` | A genuine OS-family fallback, for example `Debian/`. |
 
-Use two-digit filenames to express order:
+Keep `tasks/shared/` free of distribution checks, package-manager modules, and
+platform-specific paths. Put platform behavior in a platform directory instead.
+
+Use two-digit prefixes for order:
 
 ```text
 00_validate.yml
@@ -140,61 +106,52 @@ Use two-digit filenames to express order:
 30_service.yml
 ```
 
-### Shadowing, not inheritance
+## Model common and platform-specific work
 
-Files with the same basename are alternatives, not additive layers:
+A basename is one task step, not a stack of files. If both of these exist:
 
 ```text
 tasks/shared/20_configure.yml
 tasks/Ubuntu/20_configure.yml
 ```
 
-An Ubuntu host runs only `tasks/Ubuntu/20_configure.yml`. If common work must
-also run, give it a different basename:
+Ubuntu uses its platform-specific `20_configure.yml`. The shared file is the
+fallback, not an additional layer.
+
+When both common and platform-specific work are required, use two steps:
 
 ```text
 tasks/shared/15_common_content.yml
 tasks/Ubuntu/20_configure.yml
 ```
 
-## Files and directories
+This keeps the execution plan visible from filenames and avoids hidden ordering
+between generic and OS-specific work.
+
+## Repository layout
 
 | Path | Purpose |
 |---|---|
-| `defaults/main.yml` | User-overridable variables. Document each public value. |
+| `defaults/main.yml` | User-overridable variables; document every public variable. |
 | `vars/main.yml` | Fixed internal maps and constants. |
-| `handlers/main.yml` | Handlers notified by role tasks. |
-| `files/` | Static content copied unchanged. |
+| `handlers/main.yml` | Handlers notified by task files. |
+| `files/` | Static files copied unchanged. |
 | `templates/` | Jinja2 templates. |
-| `tests/test.yml` | Installed-role smoke test. |
+| `tests/test.yml` | Installed-role smoke playbook. |
 | `tests/README.md` | Harness and validation instructions. |
+| `skills/ansible-role-template/SKILL.md` | Reusable workflow for agents and maintainers. |
 
 ## Requirements
 
 - Ansible 2.9 or later.
 - Fact gathering enabled before the role runs.
-- Secrets supplied through Ansible Vault or an approved secret manager; never
-  commit credentials, certificates, or private keys in a role.
+- Secrets supplied through Ansible Vault or an approved secret manager. Never
+  commit credentials, certificates, or private keys.
 
-## Repository skill
+## Validate the template
 
-The Tuxbull-aligned reusable workflow is versioned in this repository:
-
-```text
-skills/ansible-role-template/SKILL.md
-```
-
-It documents the dispatcher contract, migration path, task placement, basename
-shadowing, installed-role validation, and the deliberate limitation on
-conditional includes from `tasks/main.yml`.
-
-## Validation
-
-Run the harness from [tests/README.md](tests/README.md). The dispatcher is
-intentionally tested as an installed role below a `roles/` directory, matching
-normal local Ansible, Galaxy, AWX, and AAP use.
-
-At minimum:
+Use the installed-role harness in [tests/README.md](tests/README.md). A direct
+checkout run does not prove that discovery works through normal role paths.
 
 ```bash
 ANSIBLE_ROLES_PATH=roles ansible-playbook /path/to/ansible.template/tests/test.yml \
@@ -203,9 +160,9 @@ ANSIBLE_ROLES_PATH=roles ansible-playbook /path/to/ansible.template/tests/test.y
   -i localhost, -c local
 ```
 
-A real derived role also needs platform syntax coverage, live QA where
-authorized, idempotency verification, and independent service/application
-checks.
+A real role also needs OS-path coverage, authorized live QA where appropriate,
+a second idempotency converge, and independent verification of its service or
+application behavior.
 
 ## License
 

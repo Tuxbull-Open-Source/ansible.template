@@ -64,15 +64,30 @@ tasks/shared/<task>.yml
 `rhelAll` covers AlmaLinux, Rocky Linux, and Red Hat Enterprise Linux.
 `tasks/shared/` is the global fallback.
 
-## Deliberate Limitation
+## Use the protected dispatcher core
 
-`tasks/main.yml` cannot conditionally include arbitrary task files. It discovers
-static numbered basenames, then `tasks/include-file.yml` selects one first-match
-implementation per basename.
+These files are the template's protected core:
 
-Do not add conditional `include_tasks` calls to `tasks/main.yml` to make the
-dispatcher additive. Use distinct basenames for independent work. Use the same
-basename across folders only for deliberate OS-specific replacement.
+```text
+tasks/main.yml
+tasks/include-file.yml
+```
+
+Do not modify them in a derived role. Propose dispatch changes through a reviewed
+PR against `Tuxbull-Open-Source/ansible.template`; after it merges, align the
+two files in derived roles with the merged template.
+
+The dispatcher selects one static implementation per logical numbered basename.
+Model independent work as distinct basenames; use the same basename only for
+intentional platform-specific replacement.
+
+## Change History
+
+Preserve `CHANGELOG.md` history whenever this template or a derived role changes.
+Extend the existing file; never replace it with a new single-release changelog.
+If an older repository has published releases but no tracked changelog, recover a
+clearly labelled ledger from immutable tags and GitHub release notes. Do not
+invent undocumented historical changes.
 
 ## Task Placement
 
